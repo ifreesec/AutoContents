@@ -13,9 +13,13 @@ services:
       RSSHUB_URL: 'http://rsshub:1200'
       DB_PATH: /app/data/app.db
       RENDER_OUTPUT_DIR: /app/uploads/rendered
+      # 容器内 Chromium 路径（Debian/Ubuntu apt 安装位置）
+      CHROME_PATH: /usr/bin/chromium
     volumes:
       - makecontents-data:/app/data
       - makecontents-uploads:/app/uploads
+    # Chromium 在容器内需要更大的共享内存，否则渲染会崩溃
+    shm_size: '512mb'
     depends_on:
       rsshub:
         condition: service_healthy
@@ -24,7 +28,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
   # RSSHub
   rsshub:

@@ -5,10 +5,19 @@ const fs = require('fs');
 const OUTPUT_DIR = process.env.RENDER_OUTPUT_DIR || path.join(__dirname, '../uploads/rendered');
 if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-// macOS Chrome 路径
+// Chrome/Chromium 路径：优先用环境变量，其次 macOS 默认，最后 Linux apt 路径
 const CHROME_PATH =
   process.env.CHROME_PATH ||
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  (() => {
+    const fs = require('fs');
+    const candidates = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // macOS
+      '/usr/bin/chromium',          // Debian/Ubuntu apt
+      '/usr/bin/chromium-browser',  // 部分发行版
+      '/usr/bin/google-chrome',     // Linux Chrome
+    ];
+    return candidates.find((p) => fs.existsSync(p)) || candidates[0];
+  })();
 
 let browserInstance = null;
 
@@ -18,10 +27,13 @@ async function getBrowser() {
     executablePath: CHROME_PATH,
     headless: true,
     args: [
-      '--no-sandbox',
+      '--no-sandbox',                  // 容器内必须
       '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
+      '--disable-dev-shm-usage',       // 避免共享内存不足崩溃
+      '--disable-gpu',
       '--font-render-hinting=none',
+      '--disable-extensions',
+      '--disable-background-networking',
     ],
   });
   browserInstance.on('disconnected', () => { browserInstance = null; });
