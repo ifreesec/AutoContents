@@ -1,0 +1,65 @@
+services:
+  # MakeContents 主应用
+  makecontents:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - '3710:3710'
+    environment:
+      NODE_ENV: production
+      PORT: 3710
+      RSSHUB_URL: 'http://rsshub:1200'
+      DB_PATH: /app/data/app.db
+      RENDER_OUTPUT_DIR: /app/uploads/rendered
+    volumes:
+      - makecontents-data:/app/data
+      - makecontents-uploads:/app/uploads
+    depends_on:
+      rsshub:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3710/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # RSSHub
+  rsshub:
+    image: diygod/rsshub
+    restart: always
+    ports:
+      - '1200:1200'
+    environment:
+      NODE_ENV: production
+      CACHE_TYPE: redis
+      REDIS_URL: 'redis://redis:6379/'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:1200/healthz']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Redis（RSSHub 缓存）
+  redis:
+    image: redis:alpine
+    restart: always
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  makecontents-data:
+  makecontents-uploads:
+  redis-data:

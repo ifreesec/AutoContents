@@ -1,0 +1,73 @@
+# 信源配置
+sources:
+  # === RSSHub 信源 ===
+  
+  # 36kr 快讯
+  - name: "36kr快讯"
+    url: "/36kr/newsflashes"
+    type: "rsshub"
+    enabled: true
+    
+  # Telegram 科技频道
+  - name: "科技圈TG"
+    url: "/telegram/channel/TestFlightCN"
+    type: "rsshub"
+    enabled: true
+    
+  # GitHub Trending 
+  - name: "GitHub趋势-Today"
+    url: "/github/trending/daily/any"
+    type: "rsshub"
+    enabled: true
+    
+  # HackerNews
+  - name: "HackerNews"
+    url: "/hackernews"
+    type: "rsshub"
+    enabled: true
+    translate: true    
+
+  # === 常规 RSS 信源 ===
+  # Product Hunt (通过 decohack 聚合)
+  - name: "ProductHunt"
+    url: "https://decohack.com/feed/"
+    type: "rss"
+    enabled: true
+
+
+  # 小互推特
+  - name: "小互推特"
+    url: "https://api.xgo.ing/rss/user/74e542992cf7441390c708f5601071d4"
+    type: "rss"
+    enabled: true
+
+
+# 关键词配置（用于预筛选）
+blacklist:
+  - "广告"
+  - "推广"
+  - "招聘"
+  - "求职"
+  - "二手车"
+  - "房产"
+  - "理财"
+  - "股票推荐"
+
+# 大模型配置(仅为示例)
+translate_llm_model: ""  
+translate_llm_api_key: ""
+translate_llm_baseUrl: ""
+translate_llm_sysPrompt: ""
+
+# 推送渠道
+apiKey: ""
+wxid:
+  - "wxid"
+roomName:
+  - "群名称"
+
+# 飞书知识库相关信息
+app_id: "cli_a9****"
+app_secret: "k7****Lg"
+space_id: "75****68"
+parent_node_token: "CG****bg"
