@@ -25,9 +25,15 @@ export const configAPI = {
 export const newsAPI = {
   list: (params) => api.get('/news', { params }),
   grouped: () => api.get('/news/grouped'),
+  raw: () => api.get('/news/raw'),
+  saved: () => api.get('/news/saved'),
   fetch: (source_id) => api.post('/news/fetch', source_id ? { source_id } : {}),
   hide: (id) => api.post(`/news/${id}/hide`),
+  save: (id) => api.post(`/news/${id}/save`),
+  unsave: (id) => api.post(`/news/${id}/unsave`),
   ainews: (id) => api.post(`/news/${id}/ainews`),
+  aitopics: (id) => api.post(`/news/${id}/aitopics`),
+  aitools: (id) => api.post(`/news/${id}/aitools`),
   detail: (id) => api.get(`/news/${id}`),
 };
 
@@ -39,6 +45,10 @@ export const contentAPI = {
     }),
   create: (data) => api.post('/content/create', data),
   render: (data) => api.post('/content/render', data),
+  download: (data) => api.post('/content/download', data, { responseType: 'blob' }),
+  saveContent: (data) => api.post('/content/save', data),
+  savedList: () => api.get('/content/saved'),
+  deleteSaved: (id) => api.delete(`/content/saved/${id}`),
 };
 
 export default api;

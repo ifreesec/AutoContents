@@ -127,12 +127,13 @@ async function insertBlocksToDoc(documentId, blocks, childrenIds, token) {
   return resp.data;
 }
 
-async function saveNewsToFeishu(newsTitle, newsSummary, sourceUrl) {
+// titleEmoji: 标题前缀 Emoji，如 '🆕'、'💬'、'🛠'
+async function saveNewsToFeishu(newsTitle, newsSummary, sourceUrl, titleEmoji = '🆕') {
   const today = new Date().toISOString().split('T')[0];
   const doc = await getOrCreateDailyDoc(today);
   const token = await getTenantAccessToken();
 
-  const markdown = `### ${newsTitle}\n> ${newsSummary}\n- 资讯链接：${sourceUrl}`;
+  const markdown = `### ${titleEmoji} ${newsTitle}\n> ${newsSummary}\n- 资讯链接：${sourceUrl}`;
 
   const { blocks, firstLevelBlockIds } = await convertMarkdownToBlocks(markdown, token);
   await insertBlocksToDoc(doc.node_token, blocks, firstLevelBlockIds, token);

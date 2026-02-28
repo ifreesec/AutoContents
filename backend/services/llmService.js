@@ -83,6 +83,44 @@ async function formatNewsForAINews(title, description) {
   return callLLM('edit', prompt, schema);
 }
 
+// 格式化新闻（AITopics：引导讨论型）
+async function formatNewsForAITopics(title, description) {
+  const prompt = `请将以下新闻内容润色为适合引导读者参与讨论的资讯推文，要有观点、有问题引导：
+标题：${title}
+内容：${description}`;
+
+  const schema = {
+    type: 'object',
+    properties: {
+      news_title: { type: 'string', description: '话题性标题，不超过30字，有引导性' },
+      news_summary: { type: 'string', description: '100-200字，有观点、有问题引导读者思考和讨论' },
+    },
+    required: ['news_title', 'news_summary'],
+    additionalProperties: false,
+  };
+
+  return callLLM('edit', prompt, schema);
+}
+
+// 格式化新闻（AITools：工具推荐型）
+async function formatNewsForAITools(title, description) {
+  const prompt = `请将以下内容润色为工具推荐性资讯推文，突出工具的功能亮点和使用场景：
+标题：${title}
+内容：${description}`;
+
+  const schema = {
+    type: 'object',
+    properties: {
+      news_title: { type: 'string', description: '工具推荐标题，不超过30字，突出工具名称和核心价值' },
+      news_summary: { type: 'string', description: '100-200字，介绍工具功能、亮点和使用场景，语气积极推荐' },
+    },
+    required: ['news_title', 'news_summary'],
+    additionalProperties: false,
+  };
+
+  return callLLM('edit', prompt, schema);
+}
+
 // 创作内容（MakeContent）
 async function createContent(title, description, extraInfo) {
   const parts = [`资讯标题：${title}`];
@@ -108,4 +146,4 @@ async function createContent(title, description, extraInfo) {
   return callLLM('create', prompt, schema);
 }
 
-module.exports = { translate, formatNewsForAINews, createContent };
+module.exports = { translate, formatNewsForAINews, formatNewsForAITopics, formatNewsForAITools, createContent };

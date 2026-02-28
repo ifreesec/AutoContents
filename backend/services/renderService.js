@@ -55,7 +55,8 @@ async function screenshotHTML(html, width, height) {
   }
 }
 
-async function renderCover({ cover_word, cover_title, cover_description, cover_emoji }, sessionId) {
+async function renderCover({ cover_word, cover_title, cover_description, cover_emoji, cover_title_color }, sessionId) {
+  const titleColor = cover_title_color || '#06FFA5';
   const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -74,7 +75,7 @@ async function renderCover({ cover_word, cover_title, cover_description, cover_e
     }
     .cover_title {
       position: absolute; width: 900px; height: 600px; left: 90px; top: 330px;
-      font-family: 'Noto Sans SC', sans-serif; font-weight: 900; color: #06FFA5;
+      font-family: 'Noto Sans SC', sans-serif; font-weight: 900; color: ${escHtml(titleColor)};
       display: flex; align-items: center; justify-content: flex-start; overflow: hidden;
     }
     .cover_title span { display: block; width: 100%; line-height: 1.1; }

@@ -9,6 +9,13 @@ const API_BASE = process.env.NODE_ENV === 'production'
   ? (process.env.REACT_APP_API_URL?.replace('/api', '') || '')
   : '';
 
+const TITLE_COLORS = [
+  { value: '#06FFA5', label: '翠绿' },
+  { value: '#FF6B35', label: '橙红' },
+  { value: '#5478EB', label: '蓝紫' },
+  { value: '#FFD700', label: '金黄' },
+];
+
 // 图片上传区域
 function ImageUploader({ images, onImagesChange }) {
   const fileInputRef = useRef(null);
@@ -34,7 +41,6 @@ function ImageUploader({ images, onImagesChange }) {
       const resp = await contentAPI.uploadImages(formData);
       if (resp.data.success) {
         const uploaded = resp.data.data;
-        // 用服务端返回的数据替换占位项
         onImagesChange((prev) => {
           let result = [...prev];
           previews.forEach((p, i) => {
@@ -43,11 +49,9 @@ function ImageUploader({ images, onImagesChange }) {
           });
           return result;
         });
-        // 释放本地 objectURL
         previews.forEach((p) => URL.revokeObjectURL(p.url));
       }
     } catch (e) {
-      // 上传失败移除占位项
       onImagesChange((prev) => prev.filter((r) => !previews.some((p) => p.filename === r.filename)));
       previews.forEach((p) => URL.revokeObjectURL(p.url));
       console.error('上传失败', e);
@@ -118,18 +122,20 @@ function ImageUploader({ images, onImagesChange }) {
 }
 
 // 可编辑内容字段
-function EditableField({ label, value, onChange, multiline, hint }) {
+function EditableField({ label, value, onChange, multiline, hint, children }) {
   return (
     <div className="editable-field">
       <label className="field-label">{label}</label>
-      {multiline ? (
-        <textarea
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          rows={5}
-        />
-      ) : (
-        <input value={value || ''} onChange={(e) => onChange(e.target.value)} />
+      {children || (
+        multiline ? (
+          <textarea
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            rows={5}
+          />
+        ) : (
+          <input value={value || ''} onChange={(e) => onChange(e.target.value)} />
+        )
       )}
       {hint && <p className="form-hint">{hint}</p>}
     </div>
@@ -149,7 +155,7 @@ function RedBookPreview({ title, content, coverUrl, detailUrls }) {
     <div className="redbook-preview">
       <h3 className="preview-title-bar">预览</h3>
       <div className="redbook-card">
-        {/* 左侧图片轮播 */}
+        {/* 左侧图片轮播 2/3 */}
         <div className="redbook-images">
           {allImages.length > 0 ? (
             <>
@@ -189,7 +195,7 @@ function RedBookPreview({ title, content, coverUrl, detailUrls }) {
           )}
         </div>
 
-        {/* 右侧文字 */}
+        {/* 右侧文字 1/3 */}
         <div className="redbook-text">
           <div
             className="redbook-post-title"
@@ -223,11 +229,12 @@ export default function MakeContentPage() {
   const [extraInfo, setExtraInfo] = useState('');
   const [creating, setCreating] = useState(false);
   const [rendering, setRendering] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [renderResult, setRenderResult] = useState(null);
-
-  // 可编辑字段
   const [editContent, setEditContent] = useState(null);
+  const [titleColor, setTitleColor] = useState('#06FFA5');
 
   const handleCreate = async () => {
     if (!initialData.title) {
@@ -242,8 +249,7 @@ export default function MakeContentPage() {
         extra_info: extraInfo,
       });
       if (resp.data.success) {
-        const data = resp.data.data;
-        setEditContent({ ...data });
+        setEditContent({ ...resp.data.data });
         toast.success('内容创作完成！');
       }
     } catch (e) {
@@ -265,6 +271,7 @@ export default function MakeContentPage() {
         cover_title: editContent.cover_title,
         cover_description: editContent.cover_description,
         cover_emoji: editContent.cover_emoji,
+        cover_title_color: titleColor,
         image_filenames: images.map((img) => img.filename),
       });
       if (resp.data.success) {
@@ -275,6 +282,46 @@ export default function MakeContentPage() {
       toast.error(e.response?.data?.error || '渲染失败');
     } finally {
       setRendering(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!renderResult) return;
+    setDownloading(true);
+    try {
+      const resp = await contentAPI.download({
+        cover_url: renderResult.cover_url,
+        detail_urls: renderResult.detail_urls,
+      });
+      const url = URL.createObjectURL(new Blob([resp.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `makecontents_${Date.now()}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('下载完成！');
+    } catch (e) {
+      toast.error('下载失败');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleSaveContent = async () => {
+    if (!renderResult && !editContent) return;
+    setSaving(true);
+    try {
+      await contentAPI.saveContent({
+        title: editContent?.title || '',
+        content: editContent?.content || '',
+        cover_url: renderResult?.cover_url || '',
+        detail_urls: renderResult?.detail_urls || [],
+      });
+      toast.success('已保存到资源库！');
+    } catch (e) {
+      toast.error('保存失败');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -365,6 +412,24 @@ export default function MakeContentPage() {
                   value={editContent.cover_emoji}
                   onChange={updateEdit('cover_emoji')}
                 />
+                <div style={{ gridColumn: '1/-1' }}>
+                  <EditableField label="封面主标题颜色">
+                    <div className="color-picker-row">
+                      {TITLE_COLORS.map((c) => (
+                        <button
+                          key={c.value}
+                          className={`color-chip ${titleColor === c.value ? 'active' : ''}`}
+                          style={{ '--chip-color': c.value }}
+                          onClick={() => setTitleColor(c.value)}
+                          title={c.label}
+                        >
+                          <span className="chip-dot" style={{ background: c.value }} />
+                          <span className="chip-label">{c.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </EditableField>
+                </div>
                 <EditableField
                   label="封面主标题 (cover_title)"
                   value={editContent.cover_title}
@@ -409,6 +474,28 @@ export default function MakeContentPage() {
                   '◈ 渲染封面和图片'
                 )}
               </button>
+
+              {/* 下载 & 保存按钮 */}
+              {renderResult && (
+                <div className="render-actions">
+                  <button
+                    className="btn btn-ghost"
+                    onClick={handleDownload}
+                    disabled={downloading}
+                  >
+                    {downloading ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '↓'}
+                    {downloading ? ' 打包中…' : ' 下载图片'}
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={handleSaveContent}
+                    disabled={saving}
+                  >
+                    {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '★'}
+                    {saving ? ' 保存中…' : ' 保存到资源库'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

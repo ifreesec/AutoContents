@@ -25,14 +25,14 @@ async function sendToRoom(apiKey, roomName, content) {
   });
 }
 
-async function pushAINews(newsTitle, newsSummary) {
+async function pushAINews(newsTitle, newsSummary, tag = '#AINews') {
   const enabled = getConfig('wechat_enabled');
   if (enabled !== '1') return { skipped: true, reason: '微信推送已关闭' };
 
   const apiKey = getConfig('wechat_api_key');
   if (!apiKey) throw new Error('未配置微信 API Key');
 
-  const content = `${newsTitle}\n\n${newsSummary}\n\n#AINews`;
+  const content = `${newsTitle}\n\n${newsSummary}\n\n${tag}`;
 
   const results = [];
 

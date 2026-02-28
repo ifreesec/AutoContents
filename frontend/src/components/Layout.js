@@ -5,6 +5,7 @@ import './Layout.css';
 const NAV_ITEMS = [
   { path: '/', label: '资讯首页', icon: '◈' },
   { path: '/sources', label: '信源管理', icon: '⊞' },
+  { path: '/resources', label: '资源库', icon: '◉' },
   { path: '/config', label: '系统配置', icon: '⚙' },
 ];
 
@@ -31,7 +32,7 @@ export default function Layout({ children }) {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <span className="sidebar-version">v1.0</span>
+          <span className="sidebar-version">v2.0</span>
         </div>
       </aside>
       <main className="main-content">

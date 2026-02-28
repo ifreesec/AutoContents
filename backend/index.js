@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3710;
@@ -33,8 +34,13 @@ app.get('/api/health', (req, res) => {
 });
 
 // 前端静态文件（生产模式）
-const frontendBuildPath = path.join(__dirname, '../frontend/build');
-const fs = require('fs');
+// Docker 下前端 build 在 /app/frontend/build（与 index.js 同级）
+// 本地开发前端 build 在 ../frontend/build（上一级目录）
+const frontendBuildPath = (() => {
+  const inDocker = path.join(__dirname, 'frontend/build');
+  const inLocal  = path.join(__dirname, '../frontend/build');
+  return fs.existsSync(inDocker) ? inDocker : inLocal;
+})();
 if (fs.existsSync(frontendBuildPath)) {
   app.use(express.static(frontendBuildPath));
   app.get('/{*path}', (req, res) => {

@@ -1,28 +1,95 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { newsAPI } from '../services/api';
 import { useToast } from '../components/Toast';
 import './HomePage.css';
 
-function NewsCard({ item, onHide, onAINews, onMakeContent }) {
-  const [aiNewsLoading, setAINewsLoading] = useState(false);
+// 推送下拉菜单
+function PushDropdown({ onPush, loading }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const options = [
+    { key: 'ainews', label: 'AINews', desc: '资讯速报 #AINews' },
+    { key: 'aitopics', label: 'AITopics', desc: '话题讨论 #AITopic' },
+    { key: 'aitools', label: 'AITools', desc: '工具推荐 #AITools' },
+  ];
+
+  return (
+    <div className="push-dropdown-wrap" ref={ref}>
+      <button
+        className="btn btn-ghost btn-sm push-btn"
+        onClick={() => setOpen((v) => !v)}
+        disabled={loading}
+        title="推送到微信并保存到飞书"
+      >
+        {loading ? <span className="spinner" style={{ width: 12, height: 12 }} /> : null}
+        推送 ▾
+      </button>
+      {open && (
+        <div className="push-dropdown-menu">
+          {options.map((opt) => (
+            <button
+              key={opt.key}
+              className="push-dropdown-item"
+              onClick={() => { setOpen(false); onPush(opt.key); }}
+            >
+              <span className="push-item-label">{opt.label}</span>
+              <span className="push-item-desc">{opt.desc}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewsCard({ item, onHide, onPushed, onSaved, onMakeContent }) {
+  const [pushLoading, setPushLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
   const toast = useToast();
 
   const displayTitle = item.translated_title || item.title || '无标题';
   const displayDesc = item.translated_description || item.description || '';
 
-  const handleAINews = async () => {
-    setAINewsLoading(true);
+  const handlePush = async (type) => {
+    setPushLoading(true);
     try {
-      const resp = await newsAPI.ainews(item.id);
+      const apiMap = { ainews: newsAPI.ainews, aitopics: newsAPI.aitopics, aitools: newsAPI.aitools };
+      const resp = await apiMap[type](item.id);
       if (resp.data.success) {
-        toast.success('AINews 推送成功！');
-        onAINews && onAINews(item.id);
+        toast.success('推送成功！');
+        onPushed && onPushed(item.id);
       }
     } catch (e) {
-      toast.error(e.response?.data?.error || 'AINews 失败');
+      toast.error(e.response?.data?.error || '推送失败');
     } finally {
-      setAINewsLoading(false);
+      setPushLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaveLoading(true);
+    try {
+      if (item.saved) {
+        await newsAPI.unsave(item.id);
+        toast.success('已取消保存');
+        onSaved && onSaved(item.id, false);
+      } else {
+        await newsAPI.save(item.id);
+        toast.success('已保存到资源库');
+        onSaved && onSaved(item.id, true);
+      }
+    } catch (e) {
+      toast.error('操作失败');
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -34,6 +101,7 @@ function NewsCard({ item, onHide, onAINews, onMakeContent }) {
     <div className={`news-card ${item.ai_newsed ? 'ai-newsed' : ''}`}>
       <div className="news-card-header">
         {item.ai_newsed && <span className="badge badge-success" style={{ fontSize: '10px' }}>已推送</span>}
+        {item.saved ? <span className="badge badge-warning" style={{ fontSize: '10px' }}>已保存</span> : null}
         {pubDate && <span className="news-date">{pubDate}</span>}
       </div>
       <div className="news-title">{displayTitle}</div>
@@ -43,24 +111,24 @@ function NewsCard({ item, onHide, onAINews, onMakeContent }) {
       <div className="news-actions">
         {item.link && (
           <a href={item.link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
-            查看原文
+            原文
           </a>
         )}
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={handleAINews}
-          disabled={aiNewsLoading}
-          title="格式化后推送到微信并保存到飞书"
-        >
-          {aiNewsLoading ? <span className="spinner" style={{ width: 12, height: 12 }} /> : null}
-          AINews
-        </button>
+        <PushDropdown onPush={handlePush} loading={pushLoading} />
         <button
           className="btn btn-ghost btn-sm"
           onClick={() => onMakeContent(item)}
           title="进入内容创作"
         >
-          创作内容
+          创作
+        </button>
+        <button
+          className={`btn btn-sm ${item.saved ? 'btn-warning-ghost' : 'btn-ghost'}`}
+          onClick={handleSave}
+          disabled={saveLoading}
+          title={item.saved ? '取消保存' : '保存到资源库'}
+        >
+          {item.saved ? '★' : '☆'}
         </button>
         <button
           className="btn btn-danger btn-sm"
@@ -74,7 +142,7 @@ function NewsCard({ item, onHide, onAINews, onMakeContent }) {
   );
 }
 
-function SourceSection({ sourceData, onHide, onAINews, onMakeContent }) {
+function SourceSection({ sourceData, onHide, onPushed, onSaved, onMakeContent }) {
   const { source, items } = sourceData;
   const [expanded, setExpanded] = useState(true);
 
@@ -103,7 +171,8 @@ function SourceSection({ sourceData, onHide, onAINews, onMakeContent }) {
                 key={item.id}
                 item={item}
                 onHide={onHide}
-                onAINews={onAINews}
+                onPushed={onPushed}
+                onSaved={onSaved}
                 onMakeContent={onMakeContent}
               />
             ))
@@ -173,11 +242,20 @@ export default function HomePage() {
     }
   };
 
-  const handleAINews = (newsId) => {
+  const handlePushed = (newsId) => {
     setGroupedNews((prev) =>
       prev.map((sg) => ({
         ...sg,
         items: sg.items.map((i) => (i.id === newsId ? { ...i, ai_newsed: 1 } : i)),
+      }))
+    );
+  };
+
+  const handleSaved = (newsId, saved) => {
+    setGroupedNews((prev) =>
+      prev.map((sg) => ({
+        ...sg,
+        items: sg.items.map((i) => (i.id === newsId ? { ...i, saved: saved ? 1 : 0 } : i)),
       }))
     );
   };
@@ -245,7 +323,8 @@ export default function HomePage() {
               key={sg.source.id}
               sourceData={sg}
               onHide={handleHide}
-              onAINews={handleAINews}
+              onPushed={handlePushed}
+              onSaved={handleSaved}
               onMakeContent={handleMakeContent}
             />
           ))}

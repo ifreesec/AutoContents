@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import SourcesPage from './pages/SourcesPage';
 import ConfigPage from './pages/ConfigPage';
 import MakeContentPage from './pages/MakeContentPage';
+import ResourcePage from './pages/ResourcePage';
 
 export default function App() {
   return (
@@ -33,6 +34,14 @@ export default function App() {
             element={
               <Layout>
                 <ConfigPage />
+              </Layout>
+            }
+          />
+          <Route
+            path="/resources"
+            element={
+              <Layout>
+                <ResourcePage />
               </Layout>
             }
           />

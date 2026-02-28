@@ -42,8 +42,19 @@ db.exec(`
     pub_date TEXT,
     hidden INTEGER NOT NULL DEFAULT 0,
     ai_newsed INTEGER NOT NULL DEFAULT 0,
+    saved INTEGER NOT NULL DEFAULT 0,
+    saved_at TEXT,
     fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS saved_contents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    content TEXT,
+    cover_url TEXT,
+    detail_urls TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS config (
@@ -62,6 +73,15 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_news_hidden ON news(hidden);
   CREATE INDEX IF NOT EXISTS idx_news_fetched_at ON news(fetched_at);
 `);
+
+// 迁移：为已存在的数据库添加新列（忽略已存在的错误）
+const migrations = [
+  "ALTER TABLE news ADD COLUMN saved INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE news ADD COLUMN saved_at TEXT",
+];
+for (const sql of migrations) {
+  try { db.exec(sql); } catch (_) { /* 列已存在则忽略 */ }
+}
 
 // 插入默认示例信源（仅首次）
 const sourceCount = db.prepare('SELECT COUNT(*) as cnt FROM sources').get();
