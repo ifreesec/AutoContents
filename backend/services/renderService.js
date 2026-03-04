@@ -3,36 +3,61 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-// Apple Color Emoji 字体：macOS 直接使用系统字体，其他平台嵌入 base64 @font-face
-// fonts/ 目录与 backend/ 同级（项目根目录下）
+// ── 字体路径解析 ─────────────────────────────────────────────────────────────
+// Noto Sans SC：优先本地安装路径，本地找不到才用 Google Fonts URL
+// Apple Color Emoji：macOS 用系统字体，Linux/Windows 用项目 fonts/ 目录里的 .ttf
 const FONTS_DIR = path.join(__dirname, '../../fonts');
-function getAppleEmojiBase64() {
-  if (os.platform() === 'darwin') return null; // macOS 用系统原生字体，无需嵌入
 
-  const candidates = [
-    path.join(FONTS_DIR, 'AppleColorEmoji-Linux.ttf'),
-    path.join(FONTS_DIR, 'AppleColorEmoji-Windows.ttf'),
-  ];
-  const fontPath = candidates.find((p) => fs.existsSync(p));
-  if (!fontPath) return null;
+// Noto Sans SC 本地路径候选（Docker 安装 fonts-noto-cjk 后的路径）
+const NOTO_CANDIDATES = [
+  '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+  '/usr/share/fonts/opentype/noto/NotoSansCJKsc-Regular.otf',
+  '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+  // macOS 系统字体（有就直接用 local()，不用 @font-face）
+];
 
-  return fs.readFileSync(fontPath).toString('base64');
+// Apple Color Emoji 候选（安装到系统字体目录后可 local() 直接用）
+const EMOJI_SYSTEM_CANDIDATES = [
+  '/usr/local/share/fonts/AppleColorEmoji.ttf',   // Dockerfile 安装位置
+  '/usr/share/fonts/AppleColorEmoji.ttf',
+  '/Library/Fonts/Apple Color Emoji.ttc',         // macOS
+  path.join(os.homedir(), 'Library/Fonts/Apple Color Emoji.ttc'),
+];
+
+// 项目 fonts/ 目录里的字体（fallback，作为 @font-face file:// 引用）
+const EMOJI_PROJECT_CANDIDATES = [
+  path.join(FONTS_DIR, 'AppleColorEmoji-Linux.ttf'),
+  path.join(FONTS_DIR, 'AppleColorEmoji-Windows.ttf'),
+];
+
+function findFile(candidates) {
+  return candidates.find((p) => fs.existsSync(p)) || null;
 }
 
-// 在模块加载时读取一次，避免每次渲染都读磁盘
-const EMOJI_FONT_B64 = getAppleEmojiBase64();
+// 模块加载时确定字体策略，避免每次渲染重复 I/O
+const EMOJI_SYSTEM_PATH = findFile(EMOJI_SYSTEM_CANDIDATES);
+const EMOJI_PROJECT_PATH = !EMOJI_SYSTEM_PATH ? findFile(EMOJI_PROJECT_CANDIDATES) : null;
 
-// 生成注入到 HTML <style> 里的 @font-face 声明
-function getEmojiFontFaceCSS() {
-  if (!EMOJI_FONT_B64) return ''; // macOS 不需要
-  return `
+// 生成 cover HTML 里的字体 CSS
+function getFontCSS() {
+  let css = '';
+
+  // Emoji 字体：系统已安装 → local()；否则 file:// 引用项目字体
+  if (EMOJI_SYSTEM_PATH) {
+    css += `
     @font-face {
       font-family: 'Apple Color Emoji';
-      src: url('data:font/truetype;base64,${EMOJI_FONT_B64}') format('truetype');
-      font-weight: normal;
-      font-style: normal;
-    }
-  `;
+      src: local('Apple Color Emoji'), url('file://${EMOJI_SYSTEM_PATH}') format('truetype');
+    }`;
+  } else if (EMOJI_PROJECT_PATH) {
+    css += `
+    @font-face {
+      font-family: 'Apple Color Emoji';
+      src: url('file://${EMOJI_PROJECT_PATH}') format('truetype');
+    }`;
+  }
+
+  return css;
 }
 
 const OUTPUT_DIR = process.env.RENDER_OUTPUT_DIR || path.join(__dirname, '../uploads/rendered');
@@ -78,8 +103,9 @@ async function screenshotHTML(html, width, height) {
   const page = await browser.newPage();
   try {
     await page.setViewport({ width, height, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    // 等待字体加载（Google Fonts）
+    // domcontentloaded 避免等待任何网络请求（字体走本地 file:// 不算网络）
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    // 等待字体（本地 file:// 字体加载极快）及脚本执行完毕
     await page.evaluate(() => document.fonts.ready);
     const buffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width, height } });
     return buffer;
@@ -95,8 +121,7 @@ async function renderCover({ cover_word, cover_title, cover_description, cover_e
 <head>
   <meta charset="UTF-8">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
-    ${getEmojiFontFaceCSS()}
+    ${getFontCSS()}
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { width: 1080px; height: 1440px; overflow: hidden; background: #1E2028; }
 
@@ -104,18 +129,21 @@ async function renderCover({ cover_word, cover_title, cover_description, cover_e
 
     .cover_word {
       position: absolute; width: 700px; left: 90px; top: 140px;
-      font-family: 'Noto Sans SC', sans-serif; font-weight: 900; color: #8E8E8E;
+      font-family: 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      font-weight: 900; color: #8E8E8E;
       white-space: nowrap; transform-origin: left center;
     }
     .cover_title {
       position: absolute; width: 900px; height: 600px; left: 90px; top: 330px;
-      font-family: 'Noto Sans SC', sans-serif; font-weight: 900; color: ${escHtml(titleColor)};
+      font-family: 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      font-weight: 900; color: ${escHtml(titleColor)};
       display: flex; align-items: center; justify-content: flex-start; overflow: hidden;
     }
     .cover_title span { display: block; width: 100%; line-height: 1.1; }
     .cover_description {
       position: absolute; width: 900px; height: 200px; left: 90px; top: 951px;
-      font-family: 'Noto Sans SC', sans-serif; font-weight: 400; color: #FFFFFF;
+      font-family: 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      font-weight: 400; color: #FFFFFF;
       display: flex; align-items: center; justify-content: flex-start; overflow: hidden;
     }
     .cover_description span { display: block; width: 100%; line-height: 1.2; }

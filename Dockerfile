@@ -15,18 +15,22 @@ RUN npm run build
 # ────────────────────────────────────────────
 FROM node:20-slim
 
-# 安装 Chromium 和中文字体（Emoji 通过项目内 .ttf 提供，不依赖系统 Emoji 字体）
+# 安装 Chromium、中文字体和 fontconfig
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-noto-cjk \
+    fontconfig \
     libcairo2-dev \
     libpango1.0-dev \
     libjpeg-dev \
     libgif-dev \
     librsvg2-dev \
     curl \
-    && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
+
+# 安装 Apple Color Emoji 字体到系统字体目录，让 Chromium 可以 local() 引用
+COPY fonts/AppleColorEmoji-Linux.ttf /usr/local/share/fonts/AppleColorEmoji.ttf
+RUN fc-cache -f /usr/local/share/fonts/
 
 WORKDIR /app
 
