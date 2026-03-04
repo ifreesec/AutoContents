@@ -1,4 +1,4 @@
-# MakeContents
+# AutoContents  
 
 基于 RSSHub 的 AI 资讯聚合、内容创作与 Agent 自动化工具。
 
@@ -16,7 +16,7 @@
 | **内容创作** | 图片上传 + 大模型生成封面文案，渲染 1080×1440 封面图与详情图，小红书风格预览 |
 | **资源库** | 原始资讯归档、已保存资讯列表、已保存内容宫格展示 |
 | **飞书多维表** | 创作内容一键存入多维表，供人工审核后发布 |
-| **Agent 接口** | 暴露完整 API，配合 Cursor Skill 实现全自动资讯筛选、推送、创作、归档、通知 |
+| **Agent 接口** | 暴露完整 API，配合 Agent Skills 实现全自动资讯筛选、推送、创作、归档、通知 |
 
 ---
 
@@ -40,8 +40,8 @@
 ### 启动
 
 ```bash
-git clone https://github.com/comeonzhj/MakeContents.git
-cd MakeContents
+git clone https://github.com/comeonzhj/AutoContents.git
+cd AutoContents
 
 # 复制环境变量模板
 cp backend/.env.example backend/.env
@@ -58,11 +58,11 @@ cp backend/.env.example backend/.env
 
 ## Docker 部署
 
-项目已包含完整的 Docker Compose 配置，内含 MakeContents 主服务 + RSSHub + Redis。
+项目已包含完整的 Docker Compose 配置，内含 AutoContents 主服务 + RSSHub + Redis。
 
 ```bash
-git clone https://github.com/comeonzhj/MakeContents.git
-cd MakeContents
+git clone https://github.com/comeonzhj/AutoContents.git
+cd AutoContents
 
 # 构建并启动
 docker compose -p makecontent up -d --build
@@ -143,7 +143,7 @@ Agent 调用接口自动去重：推送过的资讯标记 `ai_newsed=1`，调用
 ## 目录结构
 
 ```
-MakeContents/
+AutoContents/
 ├── backend/
 │   ├── db/            # SQLite 初始化与迁移
 │   ├── routes/        # API 路由（sources/news/config/content）
