@@ -11,6 +11,7 @@ const { createContent } = require('../services/llmService');
 const { renderCover, renderDetail, screenshotUrl, OUTPUT_DIR } = require('../services/renderService');
 const { saveContentToFeishuBitable } = require('../services/feishuService');
 const { notifyFeishuBot } = require('../services/wechatService');
+const { publishNote } = require('../services/xhsService');
 const db = require('../db/database');
 
 const UPLOAD_DIR = path.join(__dirname, '../uploads/images');
@@ -314,6 +315,42 @@ router.post('/notify-bot', async (req, res) => {
     const result = await notifyFeishuBot(message);
     res.json({ success: true, data: result });
   } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 发布内容到小红书
+ * 请求体：
+ * {
+ *   title: string,          // 笔记标题
+ *   desc: string,           // 正文
+ *   cover_url: string,      // 封面图 URL（/uploads/rendered/xxx.png）
+ *   detail_urls: string[],  // 详情图 URL 数组
+ * }
+ */
+router.post('/publish-xhs', async (req, res) => {
+  const { title, desc, cover_url, detail_urls } = req.body;
+
+  if (!title || !cover_url) {
+    return res.status(400).json({ success: false, error: '缺少必要字段：title 和 cover_url' });
+  }
+
+  // 将 URL 路径转换为本地文件路径
+  const toLocalPath = (url) => path.join(__dirname, '../', url);
+
+  const allUrls = [cover_url, ...(detail_urls || [])].filter(Boolean);
+  const imagePaths = allUrls.map(toLocalPath).filter((p) => fs.existsSync(p));
+
+  if (imagePaths.length === 0) {
+    return res.status(400).json({ success: false, error: '没有可用的渲染图片文件' });
+  }
+
+  try {
+    const result = await publishNote({ title, desc, imagePaths });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('发布小红书失败:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

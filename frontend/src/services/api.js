@@ -51,6 +51,7 @@ export const contentAPI = {
   notifyBot: (message) => api.post('/content/notify-bot', { message }),
   savedList: () => api.get('/content/saved'),
   deleteSaved: (id) => api.delete(`/content/saved/${id}`),
+  publishXhs: (data) => api.post('/content/publish-xhs', data),
 };
 
 export default api;

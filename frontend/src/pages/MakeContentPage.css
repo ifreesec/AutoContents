@@ -267,16 +267,36 @@
   font-size: 14px;
 }
 
-/* 渲染后操作按钮 */
+/* 渲染后操作按钮（预览区下方） */
 .render-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
 .render-actions .btn {
   flex: 1;
+  min-width: 120px;
   justify-content: center;
+}
+
+/* 小红书发布按钮 */
+.btn-xhs {
+  background: #FF2442;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  transition: opacity var(--transition);
+}
+
+.btn-xhs:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn-xhs:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 小红书预览 */

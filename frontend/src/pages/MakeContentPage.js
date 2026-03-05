@@ -222,6 +222,7 @@ export default function MakeContentPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
+  const previewRef = useRef(null);
 
   const initialData = location.state || {};
 
@@ -231,11 +232,12 @@ export default function MakeContentPage() {
   const [rendering, setRendering] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingBitable, setSavingBitable] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const [renderResult, setRenderResult] = useState(null);
   const [editContent, setEditContent] = useState(null);
   const [titleColor, setTitleColor] = useState('#06FFA5');
-  const [savingBitable, setSavingBitable] = useState(false);
 
   const handleCreate = async () => {
     if (!initialData.title) {
@@ -278,6 +280,10 @@ export default function MakeContentPage() {
       if (resp.data.success) {
         setRenderResult(resp.data.data);
         toast.success('渲染完成！');
+        // 渲染成功后自动滚动到预览区
+        setTimeout(() => {
+          previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
       }
     } catch (e) {
       toast.error(e.response?.data?.error || '渲染失败');
@@ -345,6 +351,29 @@ export default function MakeContentPage() {
       toast.error(e.response?.data?.error || '保存到多维表失败');
     } finally {
       setSavingBitable(false);
+    }
+  };
+
+  const handlePublishXhs = async () => {
+    if (!renderResult) return;
+    setPublishing(true);
+    try {
+      const resp = await contentAPI.publishXhs({
+        title: editContent?.title || '',
+        desc: editContent?.content || '',
+        cover_url: renderResult.cover_url,
+        detail_urls: renderResult.detail_urls || [],
+      });
+      if (resp.data.success) {
+        const noteUrl = resp.data.data?.note_url;
+        toast.success(noteUrl
+          ? `发布成功！笔记链接：${noteUrl}`
+          : '发布成功！');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.error || '发布小红书失败');
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -497,14 +526,29 @@ export default function MakeContentPage() {
                   '◈ 渲染封面和图片'
                 )}
               </button>
+            </div>
+          )}
+        </div>
 
-              {/* 下载 & 保存按钮 */}
+        {/* 右栏：预览 + 操作按钮 */}
+        <div className="make-content-right" ref={previewRef}>
+          {(renderResult || editContent) ? (
+            <>
+              <RedBookPreview
+                title={editContent?.title || ''}
+                content={editContent?.content || ''}
+                coverUrl={renderResult?.cover_url || ''}
+                detailUrls={renderResult?.detail_urls || []}
+              />
+
+              {/* 渲染成功后的所有操作按钮统一放在预览区下方 */}
               {renderResult && (
                 <div className="render-actions">
                   <button
                     className="btn btn-ghost"
                     onClick={handleDownload}
                     disabled={downloading}
+                    title="打包下载所有图片"
                   >
                     {downloading ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '↓'}
                     {downloading ? ' 打包中…' : ' 下载图片'}
@@ -513,6 +557,7 @@ export default function MakeContentPage() {
                     className="btn btn-ghost"
                     onClick={handleSaveContent}
                     disabled={saving}
+                    title="保存到资源库"
                   >
                     {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '★'}
                     {saving ? ' 保存中…' : ' 保存到资源库'}
@@ -526,23 +571,19 @@ export default function MakeContentPage() {
                     {savingBitable ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '⊞'}
                     {savingBitable ? ' 同步中…' : ' 存入多维表'}
                   </button>
+                  <button
+                    className="btn btn-xhs"
+                    onClick={handlePublishXhs}
+                    disabled={publishing}
+                    title="发布到小红书（需在配置中开启）"
+                  >
+                    {publishing ? <span className="spinner" style={{ width: 14, height: 14 }} /> : '✿'}
+                    {publishing ? ' 发布中…' : ' 发布到小红书'}
+                  </button>
                 </div>
               )}
-            </div>
-          )}
-        </div>
-
-        {/* 右栏：预览 */}
-        <div className="make-content-right">
-          {(renderResult || editContent) && (
-            <RedBookPreview
-              title={editContent?.title || ''}
-              content={editContent?.content || ''}
-              coverUrl={renderResult?.cover_url || ''}
-              detailUrls={renderResult?.detail_urls || []}
-            />
-          )}
-          {!editContent && (
+            </>
+          ) : (
             <div className="preview-placeholder">
               <div className="preview-placeholder-inner">
                 <span style={{ fontSize: 48 }}>◈</span>

@@ -137,6 +137,7 @@ export default function ConfigPage() {
     { id: 'llm', label: '大模型配置' },
     { id: 'feishu', label: '飞书配置' },
     { id: 'wechat', label: '微信推送' },
+    { id: 'xhs', label: '小红书发布' },
     { id: 'blacklist', label: '关键词过滤' },
   ];
 
@@ -342,6 +343,44 @@ export default function ConfigPage() {
               rows={5}
             />
             <p className="form-hint">每行填写一个群聊名称，发送间隔 5-10 秒</p>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'xhs' && (
+        <div className="config-content">
+          <div className="config-section">
+            <h3 className="section-title">小红书发布配置</h3>
+            <p className="section-desc">
+              配置后可在内容创作页直接将渲染好的图片发布到小红书。
+              Cookie 用于身份认证，请确保包含 <code>a1</code> 和 <code>web_session</code> 字段。
+            </p>
+            <div className="config-grid">
+              <div className="form-group full-width">
+                <div className="toggle-label-row">
+                  <label className="form-label">发布开关</label>
+                  <Toggle
+                    checked={config.xhs_enabled === '1'}
+                    onChange={(v) => handleChange('xhs_enabled', v ? '1' : '0')}
+                  />
+                </div>
+                <p className="form-hint">
+                  关闭后 Agent 和手动操作均无法发布到小红书，防止内容未经审核直接发出。
+                </p>
+              </div>
+              <div className="form-group full-width">
+                <label className="form-label">小红书 Cookie</label>
+                <textarea
+                  value={config.xhs_cookie || ''}
+                  onChange={(e) => handleChange('xhs_cookie', e.target.value)}
+                  placeholder="从浏览器复制完整 Cookie 字符串，如：a1=xxx; web_session=xxx; ..."
+                  rows={5}
+                />
+                <p className="form-hint">
+                  获取方式：浏览器登录 xiaohongshu.com → F12 → Network → 任意请求 → 复制 Cookie 请求头内容
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -49,6 +49,10 @@ const DEFAULT_CONFIG = {
 
   // 飞书机器人 Webhook 地址
   feishu_bot_webhook: '',
+
+  // 小红书发布
+  xhs_cookie: '',
+  xhs_enabled: '0',  // 默认关闭，需人工确认开启
 };
 
 function getConfig(key) {
