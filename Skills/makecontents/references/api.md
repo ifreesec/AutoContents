@@ -167,8 +167,11 @@ POST /content/publish-xhs
   "detail_urls": [
     "/uploads/rendered/xxx_detail_0.png",
     "/uploads/rendered/xxx_detail_1.png"
-  ]
+  ],
+  "is_private": true
 }
+```
+> Agent 调用时**必须传 `"is_private": true`**，发布为仅自己可见，等待人类在小红书 App 审核后设为公开。
 ```
 响应：
 ```json
@@ -184,6 +187,10 @@ POST /content/publish-xhs
 - 系统配置页「小红书发布」Tab 中填写了有效的 Cookie（含 `a1` 和 `web_session` 字段）
 - 「发布开关」已开启（`xhs_enabled = 1`）
 - 图片文件必须是已通过 `/content/render` 或 `/content/agent-render` 渲染生成的本地文件
+
+**可见性规则**：
+- **人工发布**（通过应用界面点击按钮）：直接发布为**公开可见**
+- **Agent 发布**：必须传 `"is_private": true`，发布为**仅自己可见**，由人类在小红书 App 中审核后手动改为公开
 
 **错误情况**：
 - `小红书发布功能未开启` — 需在配置页开启开关
@@ -229,12 +236,13 @@ GET /content/saved
 ```
 1. （前提）确认 xhs_enabled 已开启，否则跳过此流程
 2. 完成内容创作流程，获得 cover_url 和 detail_urls
-3. POST /content/publish-xhs            # 发布到小红书
-   - title: 笔记标题（来自 agent-render 的 title 字段，≤20字）
-   - desc:  笔记正文（来自 agent-render 的 content 字段）
+3. POST /content/publish-xhs            # 发布到小红书（Agent 必须传 is_private: true）
+   - title:      笔记标题（来自 agent-render 的 title 字段，≤20字）
+   - desc:       笔记正文（来自 agent-render 的 content 字段）
    - cover_url / detail_urls: 渲染结果路径
+   - is_private: true   # ⚠️ Agent 发布必须设为 true（仅自己可见），人类审核后自行在 App 改为公开
 4. 检查响应中的 note_url，确认发布成功
-5. POST /content/notify-bot             # 通知人类（附上笔记链接）
+5. POST /content/notify-bot             # 通知人类（附上笔记链接，提示需在小红书 App 审核后设为公开）
    message 示例："✅ 已发布到小红书：《{title}》\n🔗 {note_url}"
 ```
 

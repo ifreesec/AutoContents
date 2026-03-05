@@ -330,7 +330,7 @@ router.post('/notify-bot', async (req, res) => {
  * }
  */
 router.post('/publish-xhs', async (req, res) => {
-  const { title, desc, cover_url, detail_urls } = req.body;
+  const { title, desc, cover_url, detail_urls, is_private } = req.body;
 
   if (!title || !cover_url) {
     return res.status(400).json({ success: false, error: '缺少必要字段：title 和 cover_url' });
@@ -347,7 +347,9 @@ router.post('/publish-xhs', async (req, res) => {
   }
 
   try {
-    const result = await publishNote({ title, desc, imagePaths });
+    // is_private 由调用方决定：人工发布传 false（公开），Agent 发布传 true（仅自己可见）
+    // 未传时默认 false（公开），保持人工操作的直觉
+    const result = await publishNote({ title, desc, imagePaths, isPrivate: is_private === true });
     res.json({ success: true, data: result });
   } catch (err) {
     console.error('发布小红书失败:', err.message);

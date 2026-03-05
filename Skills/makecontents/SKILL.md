@@ -102,9 +102,11 @@ To execute the content creation workflow:
      "title": "{title（≤20字）}",
      "desc": "{content}",
      "cover_url": "{cover_url}",
-     "detail_urls": ["{detail_urls[0]}", "..."]
+     "detail_urls": ["{detail_urls[0]}", "..."],
+     "is_private": true
    }
    ```
+   - **Agent 必须传 `"is_private": true`**，笔记将以「仅自己可见」发布，由人类在小红书 App 中审核后手动设为公开
    - 成功后从响应中取 `note_url`
    - 若接口返回错误"小红书发布功能未开启"，**不重试、不报错**，跳过此步骤即可
 6. 调用 `POST /api/content/notify-bot` 发送通知，消息格式：
@@ -116,7 +118,7 @@ To execute the content creation workflow:
    标签：{tags}
    
    已存入飞书多维表，请审核。
-   {如已发布到小红书：🔗 小红书链接：{note_url}}
+   {如已发布到小红书：🔗 小红书笔记（仅自己可见，请在 App 审核后设为公开）：{note_url}}
    ```
 
 ---

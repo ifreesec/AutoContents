@@ -363,6 +363,7 @@ export default function MakeContentPage() {
         desc: editContent?.content || '',
         cover_url: renderResult.cover_url,
         detail_urls: renderResult.detail_urls || [],
+        is_private: false,
       });
       if (resp.data.success) {
         const noteUrl = resp.data.data?.note_url;
