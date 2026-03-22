@@ -222,9 +222,10 @@ async function saveContentToFeishuBitable(data) {
 
   const today = new Date().toISOString().split('T')[0];
 
+  const urlValue = data.news_source_url || data.source_url || '';
   const fields = {
     '资讯': data.news_title || data.title || '',
-    'url': data.news_source_url || data.source_url || '',
+    'url': urlValue ? { "url": urlValue, "text": urlValue } : null,
     '标题': data.title || '',
     '正文': data.content || '',
     '创作时间': today,
