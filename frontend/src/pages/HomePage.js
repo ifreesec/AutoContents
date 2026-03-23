@@ -7,7 +7,20 @@ import './HomePage.css';
 function NewsCard({ item, onHide, onPushed, onSaved, onMakeContent }) {
   const [pushLoading, setPushLoading] = useState(false); // false | 'ainews' | 'aitopics' | 'aitools'
   const [saveLoading, setSaveLoading] = useState(false);
+  const [copyLoading, setCopyLoading] = useState(false);
   const toast = useToast();
+
+  const handleCopyId = async () => {
+    setCopyLoading(true);
+    try {
+      await navigator.clipboard.writeText(String(item.id));
+      toast.success(`已复制 ID: ${item.id}`);
+    } catch (e) {
+      toast.error('复制失败');
+    } finally {
+      setCopyLoading(false);
+    }
+  };
 
   const displayTitle = item.translated_title || item.title || '无标题';
   const displayDesc = item.translated_description || item.description || '';
@@ -55,6 +68,14 @@ function NewsCard({ item, onHide, onPushed, onSaved, onMakeContent }) {
   return (
     <div className={`news-card ${item.ai_newsed ? 'ai-newsed' : ''}`}>
       <div className="news-card-header">
+        <span
+          className="news-id"
+          onClick={handleCopyId}
+          style={{ cursor: 'pointer', marginRight: '8px' }}
+          title="点击复制 ID"
+        >
+          #{item.id} {copyLoading ? '📋' : '📋'}
+        </span>
         {item.ai_newsed && <span className="badge badge-success" style={{ fontSize: '10px' }}>已推送</span>}
         {item.saved ? <span className="badge badge-warning" style={{ fontSize: '10px' }}>已保存</span> : null}
         {pubDate && <span className="news-date">{pubDate}</span>}

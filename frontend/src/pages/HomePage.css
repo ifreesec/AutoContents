@@ -146,6 +146,23 @@
   gap: 8px;
 }
 
+.news-id {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+
+.news-id:hover {
+  background: var(--primary);
+  color: var(--bg);
+  border-color: var(--primary);
+}
+
 .news-date {
   font-size: 11px;
   color: var(--text-muted);
