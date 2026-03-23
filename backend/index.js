@@ -5,14 +5,24 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs');
+const fs2 = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3710;
 
+// 日志配置
+const LOG_FILE = process.env.LOG_FILE || path.join(__dirname, '../logs/backend.log');
+// 确保日志目录存在
+const logDir = path.dirname(LOG_FILE);
+if (!fs2.existsSync(logDir)) {
+  fs2.mkdirSync(logDir, { recursive: true });
+}
+const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
+
 // 中间件
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
-app.use(morgan('combined'));
+app.use(morgan('combined', { stream: logStream }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
