@@ -80,11 +80,30 @@ async function callLLM(type, userContent, schema = null) {
   const content = resp.data.choices[0].message.content;
   if (schema) {
     try {
-      // 去掉可能包裹的 markdown 代码块
-      const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      let cleaned = content;
+
+      // 1. 去掉 markdown 代码块
+      cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+      // 2. 去掉 <thinking>...</thinking> 思考过程（MiniMax、DeepSeek 等模型）
+      cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
+
+      // 3. 去掉类似 [DONE]、<eos> 等标记
+      cleaned = cleaned.replace(/\[DONE\]/gi, '').replace(/<eos>/gi, '').trim();
+
+      // 4. 直接找第一个 { 提取 JSON（兼容各种前缀）
+      const jsonStart = cleaned.indexOf('{');
+      if (jsonStart >= 0) {
+        cleaned = cleaned.slice(jsonStart);
+      }
+
       return JSON.parse(cleaned);
-    } catch {
-      return content;
+    } catch (e) {
+      // 解析失败时记录详细错误，供排查
+      const errorMsg = `LLM JSON 解析失败 | 模型: ${model} | 错误: ${e.message} | 原始内容: ${content.slice(0, 300)}...`;
+      console.error(errorMsg);
+      // 抛出一个带信息的错误，让调用方知道
+      throw new Error(`LLM 输出解析失败: ${e.message}`);
     }
   }
   return content;
